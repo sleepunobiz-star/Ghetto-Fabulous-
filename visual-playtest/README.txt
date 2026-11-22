@@ -1,0 +1,1 @@
+GHETTO FABULOUS visual-art preview. Upload index.html and assets folder together to a separate test location. This preview uses recovered legacy V3 pass-and-play mechanics, NOT the live V6 four-bar rhyme-lock engine. It is NOT multi-device synchronized. Live site was not changed. Original eight artwork and board included; Mo Problems replaces the old name in interface.
