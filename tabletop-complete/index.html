@@ -98,7 +98,7 @@ html{scroll-behavior:auto!important}
 #deckPeek .peekcard:before{flex:0 0 auto;aspect-ratio:3/2;max-height:28dvh!important;background-image:url('front-concept.webp')!important;background-position:center!important;background-size:contain!important;background-repeat:no-repeat!important;background-color:#1e1626!important}
 #peekTitle,#peekBody{flex:0 0 auto}
 #peekAction{min-height:48px;flex:0 0 auto}
-#deckPeek .peekcard.card-enter{animation:none!important}
+#deckPeek .peekcard.card-enter{animation:dealflip .65s cubic-bezier(.2,.7,.2,1) both!important}
 .deckpile{touch-action:manipulation}
 @media(max-width:650px){.peekcard{width:min(340px,88vw)!important}#deckPeek .peekcard:before{max-height:23dvh!important}.artboard{max-height:62dvh!important}}
 </style></head><body><header><h1>GHETTO FABULOUS! 🎤</h1><p>64-square · 2–8 players · local pass-and-play playtest · BOARD + RHYME-LOCK + PUNCH-UP BETA</p></header><main><section class="panel"><h2>THE BOARD</h2><div class="stagekey"><span>🟠 1–16 DA BOTTOM</span><span>🟢 17–32 THE COME UP</span><span>🩷 33–48 THE QUALIFIERS</span><span>🟣 49–64 NOW WE HERE!</span></div><div class="board-tools"><button id="focusActive" class="primary">🎯 FIND MY CHARACTER</button><button id="zoomIn">＋ ZOOM</button><button id="zoomOut">－ ZOOM</button><button id="toggleTurn">🎴 SHOW / HIDE CARDS</button><span class="boardhint">Drag sideways to explore the original board · Tap a space to inspect</span></div><div id="tableMessage">TAP A GLOWING DECK · THE TABLE IS YOUR GAME</div><div id="tableDecks" class="tabledecks" aria-label="Card piles"></div><div class="artboard" id="boardViewport"><img src="board.jpg" alt="Original illustrated GHETTO FABULOUS 64-space board"><div id="artSquares" class="arttokens" style="pointer-events:auto" aria-label="Board spaces"></div><div id="artTokens" class="arttokens" aria-label="Player positions"></div></div><div class="tablehud"><button id="hudToggle" class="primary">🎴 OPEN TURN CARD</button><span id="hudPlayer">Choose your crew</span><button id="crewButton">👥 CREW</button></div><details><summary>Show interactive square inspector (1–64)</summary><div id="board" class="board"></div></details><p class="note">Tap any square to inspect its action. Test mode lets you move the active rapper directly to a square; normal movement is MAKING MOVES! cards only.</p><div class="toolbar"><button class="secondary" id="inspectBtn">Inspect square #1</button><button class="secondary" id="saveBtn">Export save</button><label class="secondary" style="padding:10px;border-radius:9px;background:#51435c;font-weight:700;cursor:pointer">Import save <input type="file" id="loadFile" accept="application/json" style="display:none"></label></div><div id="roster" class="roster"></div><h2 style="margin-top:16px">Career log</h2><div id="log" class="log"></div></section><section class="panel turnpanel expanded" id="turnPanel"><div class="flex" style="justify-content:space-between"><h2>THE TURN</h2><span id="round" class="pill"></span></div><div id="turnHeader" class="big"></div><div id="status" class="muted"></div><div id="action"></div><div class="toolbar"><label for="playerCount">Players <select id="playerCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label><button id="restart" class="bad">New game with selected players</button><button id="testToggle" class="secondary">Test mode: OFF</button></div><div id="testPanel" class="hidden"><p class="note">Playtest shortcut — jump to a square and resolve it, including battles, gates and the finale. This is not normal game movement.</p><div class="flex"><input id="testNumber" type="number" min="1" max="64" value="10" style="width:85px"><button id="jump">Test landing</button><button id="brokeTest" class="secondary">Test SIDE HUSTLES (0 STACKS)</button></div></div><p class="note">Rules: 3 STACKS + 1 Cred at setup only. No negative balances. No chained landing effects. Gatekeepers block passage until qualified. All dice rolls require a button press. Pass-and-play on one device; separate-device live sync is not enabled. Save stays in this browser, plus optional export/import.</p></section></main><div id="characterSetup" class="setupveil hidden"><div class="setupbox"><h2>🎤 PICK YOUR CREW</h2><p>Choose 2–8 players, then give each rapper their own character. No duplicates.</p><label>Players <select id="crewCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label><div id="crewPicks"></div><button id="startCrew" class="primary">LET'S PLAY →</button><button id="cancelCrew" class="secondary">CANCEL</button></div></div><div id="deckPeek" class="peek hidden" role="dialog" aria-modal="true"><div class="peekcard"><button id="closePeek" class="peekclose" aria-label="Close card">✕</button><div id="peekTitle"></div><div id="peekBody"></div><button id="peekAction" class="primary">BACK TO TABLE</button></div></div><script>
@@ -292,18 +292,33 @@ function phaseCard(origin){
   const flavor=card?.querySelector('p')?.textContent || $('status').textContent;
   tableCard(title,flavor,first.textContent,()=>first.click(),origin);
 }
+// Decks are physical draw piles; turn transitions are never hidden below the board.
+function tabletopAction(origin){
+  const action=$('action'), first=action.querySelector('button');
+  if(!first){tableCard('THE TABLE','No action available yet.','BACK TO TABLE',null,origin);return;}
+  const card=action.querySelector('.card');
+  const title=card?.querySelector('h3')?.textContent || (game.phase==='end'?'NEXT RAPPER':'YOUR TURN');
+  const body=card?.querySelector('p')?.textContent || action.querySelector('p')?.textContent || $('status').textContent;
+  tableCard(title,body,first.textContent,()=>first.click(),origin);
+}
 deckShelf.onclick=e=>{
   const origin=e.target.closest('[data-deck]');if(!origin||cardBusy)return;
-  const i=+origin.dataset.deck;
-  if(i===0&&game.phase==='draw'&&player().stacks>0){drawCareer();phaseCard(origin);return;}
-  if(i===4&&game.phase==='draw'&&player().stacks===0){phaseCard(origin);return;}
-  if(i===5&&game.phase==='barup'){phaseCard(origin);return;}
-  const labels=['MAKING MOVES!','GET A DUB!','TAKE AN L!','KARMA!','SIDE HUSTLES','GET BARRED UP!','ALL GOOD IN THE HOOD!'];
-  const message=game.phase==='draw'?'The glowing deck is ready. Draw from that pile to start your turn.':game.phase==='end'?'Your turn is finished. Tap NEXT RAPPER below the board.':game.phase==='barup'?'Collect your bars from the blue microphone deck.':'Finish your current turn action first. Tap the highlighted turn control below the board.';
-  $('tableMessage').textContent=message;
-  tableCard(labels[i],message,'BACK TO TABLE',null,origin);
+  const i=Number(origin.dataset.deck);
+  // End-of-turn continuation stays on the table, not in an offscreen panel.
+  if(game.phase==='end'){
+    next();
+    if(i===0&&player().stacks>0){drawCareer();tabletopAction(origin);return;}
+    if(i===4&&player().stacks===0){drawHustle();tabletopAction(origin);return;}
+    tabletopAction(origin);return;
+  }
+  if(i===0&&game.phase==='draw'&&player().stacks>0){drawCareer();tabletopAction(origin);return;}
+  if(i===4&&game.phase==='draw'&&player().stacks===0){drawHustle();tabletopAction(origin);return;}
+  if(i===5&&game.phase==='barup'){tabletopAction(origin);return;}
+  if(game.phase!=='draw'){tabletopAction(origin);return;}
+  $('tableMessage').textContent=player().stacks===0?'Draw SIDE HUSTLES to earn STACKS.':'Draw MAKING MOVES! to begin your turn.';
 };
-$('hudToggle').onclick=()=>{phaseCard($('hudToggle'))};$('toggleTurn').onclick=()=>{$('turnPanel').classList.toggle('expanded')};
+deckPeek.addEventListener('click',e=>{if(e.target===deckPeek)closeCard()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCard()});
+$('hudToggle').onclick=()=>{tabletopAction($('hudToggle'))};$('toggleTurn').onclick=()=>{$('turnPanel').classList.toggle('expanded')};
 function showCrew(){const modal=$('characterSetup');modal.classList.remove('hidden');$('crewCount').value=String(game.players.length);makeCrewRows()}
 function makeCrewRows(){const n=+$('crewCount').value,old=[...document.querySelectorAll('.crewrow select')].map(x=>x.value);$('crewPicks').innerHTML=Array.from({length:n},(_,i)=>`<label class="crewrow"><b>PLAYER ${i+1}</b><select aria-label="Player ${i+1} character">${roster.map(([name,emoji],j)=>`<option value="${j}" ${String(j)===(old[i]??String(i))?'selected':''}>${emoji} ${name}</option>`).join('')}</select></label>`).join('')}
 $('crewCount').onchange=makeCrewRows;$('crewButton').onclick=showCrew;$('cancelCrew').onclick=()=>$('characterSetup').classList.add('hidden');
