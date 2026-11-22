@@ -1,0 +1,1 @@
+GHETTO FABULOUS tabletop alpha. Independent from the live beta. Character draft, seven tactile decks, board-first compact UI, animated token idles, end-of-turn bar collection. Original battle engine retained. Unverified: precise sprite alignment, full iPhone Safari playthrough, long-game balance. Upload index.html and board.jpg to a NEW folder; do not overwrite root.
