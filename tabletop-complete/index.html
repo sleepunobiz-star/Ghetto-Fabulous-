@@ -112,7 +112,7 @@ html{scroll-behavior:auto!important}
 #characterSetup .setupbox{max-width:940px;background:radial-gradient(circle at top,#543353,#201626 75%)}
 #crewPicks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
 #crewPicks .crewcard{min-width:0;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;border:2px solid #a98363;border-radius:12px;background:linear-gradient(145deg,#68416a,#211b31);color:#fff3d8;box-shadow:4px 6px 0 #100b17;transform:rotate(var(--cardtilt));transition:transform .2s,box-shadow .2s;padding:9px}
-#crewPicks .crewcard .avatar{font-size:45px}#crewPicks .crewcard b{font-size:12px}#crewPicks .crewcard.chosen{border-color:#ffe16b;box-shadow:0 0 0 2px #ffe16b,0 0 25px #ffcc55a0;transform:translateY(-8px) rotate(0)}
+#crewPicks .crewcard .avatar{font-size:45px} .crewportrait{display:block;width:100%;aspect-ratio:3/3.5;object-fit:cover;object-position:center top;border-radius:8px;border:1px solid #c9a66b} #crewPreview .crewportrait{width:min(260px,90%);margin:auto;aspect-ratio:3/3.5} #characterSetup .setupbox{max-height:88dvh;overflow-y:auto;overscroll-behavior:contain} #crewPicks .crewcard{height:auto;transform:none} #crewPicks .crewcard.chosen{transform:translateY(-3px)}#crewPicks .crewcard b{font-size:12px}#crewPicks .crewcard.chosen{border-color:#ffe16b;box-shadow:0 0 0 2px #ffe16b,0 0 25px #ffcc55a0;transform:translateY(-8px) rotate(0)}
 #crewPreview{border:2px solid #e2b765;border-radius:14px;padding:14px;margin:12px 0;background:#17101d}#crewPreview .avatar{font-size:55px}#crewPreview button{margin:4px}
 #crewPicks .crewcard:focus-visible{outline:3px solid #fff}
 .artboard{border:8px solid #704a3a!important;border-radius:12px;box-shadow:0 16px 0 #33211f,0 26px 35px #000b!important;transform:perspective(1700px) rotateX(3deg);transform-origin:center top}
@@ -366,13 +366,13 @@ let crewSelected=[];
 function makeCrewRows(){
  const n=+$('crewCount').value;
  crewSelected=crewSelected.slice(0,n);
- $('crewPicks').innerHTML=roster.map(([name,emoji],i)=>`<button type="button" class="crewcard ${crewSelected.includes(i)?'chosen':''}" style="--cardtilt:${i%2?2:-2}deg" data-person="${i}"><span class="avatar">${emoji}</span><b>${esc(name)}</b><small>${crewSelected.includes(i)?'SELECTED ✓':'TAP TO MEET'}</small></button>`).join('');
+ $('crewPicks').innerHTML=roster.map(([name,emoji],i)=>`<button type="button" class="crewcard ${crewSelected.includes(i)?'chosen':''}" style="--cardtilt:${i%2?2:-2}deg" data-person="${i}"><img class="crewportrait" src="character-${i+1}.webp" alt="Portrait of ${esc(name)}" loading="lazy"><b>${esc(name)}</b><small>${crewSelected.includes(i)?'SELECTED ✓':'TAP TO MEET'}</small></button>`).join('');
  const remaining=n-crewSelected.length;
  $('startCrew').disabled=remaining!==0;
  $('startCrew').textContent=remaining?`CHOOSE ${remaining} MORE CHARACTER${remaining===1?'':'S'}`:`LET'S PLAY →`;
  $('crewPicks').querySelectorAll('button').forEach(b=>b.onclick=()=>{
    const i=+b.dataset.person;const preview=$('crewPreview');preview.classList.remove('hidden');
-   preview.innerHTML=`<div class="avatar">${roster[i][1]}</div><h3>${esc(roster[i][0])}</h3><p>${esc(crewDescriptions[i])}</p><button type="button" id="choosePerson">${crewSelected.includes(i)?'REMOVE FROM CREW':'CHOOSE THIS CHARACTER'}</button><button type="button" class="secondary" id="backPerson">BACK TO CARDS</button>`;
+   preview.innerHTML=`<img class="crewportrait" src="character-${i+1}.webp" alt="Portrait of ${esc(roster[i][0])}"><h3>${esc(roster[i][0])}</h3><p>${esc(crewDescriptions[i])}</p><button type="button" id="choosePerson">${crewSelected.includes(i)?'REMOVE FROM CREW':'CHOOSE THIS CHARACTER'}</button><button type="button" class="secondary" id="backPerson">BACK TO CARDS</button>`;
    $('backPerson').onclick=()=>preview.classList.add('hidden');
    $('choosePerson').onclick=()=>{if(crewSelected.includes(i))crewSelected=crewSelected.filter(v=>v!==i);else if(crewSelected.length<n)crewSelected.push(i);preview.classList.add('hidden');makeCrewRows()};
  });
