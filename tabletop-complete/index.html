@@ -134,6 +134,8 @@ html{scroll-behavior:auto!important}
 #crewPreview .reveal-stats span{border:1px solid #a98573;border-radius:9px;background:#271c32;padding:9px 4px;font-size:13px}
 #crewPreview .reveal-actions{display:grid;gap:9px;margin-top:12px}
 #crewPreview .reveal-actions button{min-height:49px}
+#crewPreview:not(.hidden){animation:gfPreviewFade .18s ease-out both}
+@keyframes gfPreviewFade{from{opacity:0}to{opacity:1}}
 @keyframes gfCardReveal{0%{opacity:.65;transform:perspective(850px) rotateY(-85deg) scale(.62)}60%{opacity:1;transform:perspective(850px) rotateY(12deg) scale(1.025)}100%{transform:perspective(850px) rotateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){#crewPreview .reveal-shell{animation:none}#crewPicks .crewcard{transition:none}}
 </style></head><body><header><h1>GHETTO FABULOUS! 🎤</h1><p>64-square · 2–8 players · local pass-and-play playtest · BOARD + RHYME-LOCK + PUNCH-UP BETA</p></header><main><section class="panel"><h2>THE BOARD</h2><div class="stagekey"><span>🟠 1–16 DA BOTTOM</span><span>🟢 17–32 THE COME UP</span><span>🩷 33–48 THE QUALIFIERS</span><span>🟣 49–64 NOW WE HERE!</span></div><div class="board-tools"><button id="focusActive" class="primary">🎯 FIND MY CHARACTER</button><button id="zoomIn">＋ ZOOM</button><button id="zoomOut">－ ZOOM</button><button id="toggleTurn">🎴 SHOW / HIDE CARDS</button><span class="boardhint">Drag sideways to explore the original board · Tap a space to inspect</span></div><div id="tableMessage">TAP A GLOWING DECK · THE TABLE IS YOUR GAME</div><div id="tableDecks" class="tabledecks" aria-label="Card piles"></div><div class="artboard" id="boardViewport"><img src="board.jpg" alt="Original illustrated GHETTO FABULOUS 64-space board"><div id="artSquares" class="arttokens" style="pointer-events:auto" aria-label="Board spaces"></div><div id="artTokens" class="arttokens" aria-label="Player positions"></div></div><div class="tablehud"><button id="hudToggle" class="primary">🎴 OPEN TURN CARD</button><span id="hudPlayer">Choose your crew</span><button id="crewButton">👥 CREW</button></div><details><summary>Show interactive square inspector (1–64)</summary><div id="board" class="board"></div></details><p class="note">Tap any square to inspect its action. Test mode lets you move the active rapper directly to a square; normal movement is MAKING MOVES! cards only.</p><div class="toolbar"><button class="secondary" id="inspectBtn">Inspect square #1</button><button class="secondary" id="saveBtn">Export save</button><label class="secondary" style="padding:10px;border-radius:9px;background:#51435c;font-weight:700;cursor:pointer">Import save <input type="file" id="loadFile" accept="application/json" style="display:none"></label></div><div id="roster" class="roster"></div><h2 style="margin-top:16px">Career log</h2><div id="log" class="log"></div></section><section class="panel turnpanel expanded" id="turnPanel"><div class="flex" style="justify-content:space-between"><h2>THE TURN</h2><span id="round" class="pill"></span></div><div id="turnHeader" class="big"></div><div id="status" class="muted"></div><div id="action"></div><div class="toolbar"><label for="playerCount">Players <select id="playerCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label><button id="restart" class="bad">New game with selected players</button><button id="testToggle" class="secondary">Test mode: OFF</button></div><div id="testPanel" class="hidden"><p class="note">Playtest shortcut — jump to a square and resolve it, including battles, gates and the finale. This is not normal game movement.</p><div class="flex"><input id="testNumber" type="number" min="1" max="64" value="10" style="width:85px"><button id="jump">Test landing</button><button id="brokeTest" class="secondary">Test SIDE HUSTLES (0 STACKS)</button></div></div><p class="note">Rules: 3 STACKS + 1 Cred at setup only. No negative balances. No chained landing effects. Gatekeepers block passage until qualified. All dice rolls require a button press. Pass-and-play on one device; separate-device live sync is not enabled. Save stays in this browser, plus optional export/import.</p></section></main><div id="characterSetup" class="setupveil hidden"><div class="setupbox"><h2>🎤 PICK YOUR CREW</h2><p>Choose 2–8 players, then give each rapper their own character. No duplicates.</p><label>Players <select id="crewCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label><div id="crewPicks"></div><div id="crewPreview" class="hidden"></div><button id="startCrew" class="primary">LET'S PLAY →</button><button id="cancelCrew" class="secondary">CANCEL</button></div></div><div id="deckPeek" class="peek hidden" role="dialog" aria-modal="true"><div class="peekcard"><button id="closePeek" class="peekclose" aria-label="Close card">✕</button><div id="peekTitle"></div><div id="peekBody"></div><div id="peekChoices"></div><button id="peekAction" class="primary">BACK TO TABLE</button></div></div><script>
@@ -199,7 +201,7 @@ function applyCareer(){
  game.phase='moving';render();
  const token=$('artTokens').children[who];let square=before;
  if(token){const [sx,sy]=boardPoint(before);token.style.left=sx+'%';token.style.top=sy+'%';token.querySelector('small').textContent=before;}
- function hop(){if(square===after){landing();requestAnimationFrame(()=>tabletopAction(null));return}
+ function hop(){if(square===after){landing();setTimeout(()=>tabletopAction(null),260);return}
  square+=Math.sign(after-square);const [x,y]=boardPoint(square);
  if(token){token.style.left=x+'%';token.style.top=y+'%';token.querySelector('small').textContent=square;}
  setTimeout(hop,185);
@@ -313,6 +315,8 @@ const deckShelf=$('tableDecks');deckShelf.innerHTML=DECK_DISPLAY.map((d,i)=>`<bu
 // All card actions are anchored to the tabletop, never scroll to a lower panel.
 const deckPeek=$('deckPeek');
 const peekCard=deckPeek.querySelector('.peekcard');
+let pendingMovement=false;
+function closeAndMove(){const move=pendingMovement;pendingMovement=false;closeCard();if(move&&game.phase==='career')applyCareer();}
 let cardBusy=false;
 function closeCard(){deckPeek.classList.add('hidden');$('peekChoices').replaceChildren();cardBusy=false;}
 function tableCard(title,body,buttonLabel,action,origin){
@@ -321,8 +325,8 @@ function tableCard(title,body,buttonLabel,action,origin){
   $('peekBody').textContent=body;
   $('peekAction').classList.remove('secondary');
   $('peekAction').textContent=buttonLabel||'BACK TO TABLE';
-  $('peekAction').onclick=()=>{closeCard();if(action)action();};
-  $('closePeek').onclick=closeCard;
+  $('peekAction').onclick=()=>{closeAndMove();if(action)action();};
+  $('closePeek').onclick=()=>{if(game.phase==='career')closeAndMove();else closeCard();};
   deckPeek.classList.remove('hidden');
   peekCard.classList.remove('card-enter');void peekCard.offsetWidth;peekCard.classList.add('card-enter');
   if(origin && origin.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -343,6 +347,12 @@ function phaseCard(origin){
 }
 // Decks are physical draw piles; turn transitions are never hidden below the board.
 function tabletopAction(origin){
+  if(game.phase==='career'){
+    pendingMovement=true;
+    const c=game.card;
+    tableCard('MAKING MOVES! · '+c[0],`Move ${c[1]>=0?'+':''}${c[1]} spaces · STACKS ${c[2]>=0?'+':''}${c[2]} · Cred ${c[3]>=0?'+':''}${c[3]}. Close this card to watch your character move.`, 'CLOSE CARD & MOVE',null,origin);
+    return;
+  }
   const action=$('action'), buttons=[...action.querySelectorAll('button:not(:disabled)')];
   if(!buttons.length){if(game.phase==='moving')return;tableCard('THE TABLE','No action available yet.','BACK TO TABLE',null,origin);return;}
   const card=action.querySelector('.card');
@@ -371,8 +381,10 @@ deckShelf.onclick=e=>{
   if(game.phase!=='draw'){tabletopAction(origin);return;}
   $('tableMessage').textContent=player().stacks===0?'Draw SIDE HUSTLES to earn STACKS.':'Draw MAKING MOVES! to begin your turn.';
 };
-deckPeek.addEventListener('click',e=>{if(e.target===deckPeek)closeCard()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCard()});
+deckPeek.addEventListener('click',e=>{if(e.target===deckPeek)closeAndMove()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAndMove()});
 $('hudToggle').onclick=()=>{tabletopAction($('hudToggle'))};$('toggleTurn').onclick=()=>{$('turnPanel').classList.toggle('expanded')};
+// Move preview outside the scrolling setup dialog so iOS Safari cannot clip the flip animation.
+document.body.appendChild($('crewPreview'));
 function showCrew(){const modal=$('characterSetup');modal.classList.remove('hidden');$('crewCount').value=String(game.players.length);makeCrewRows()}
 const crewDescriptions=[
  'Mo Problems: trouble follows the mic.','Miss Demeanor: always has the last word.',
@@ -395,6 +407,9 @@ function makeCrewRows(){
    const wasSelected=crewSelected.includes(i);
    preview.innerHTML=`<div class="reveal-shell" role="dialog" aria-modal="true" aria-labelledby="revealName" tabindex="-1"><img class="crewportrait" src="character-${i+1}.webp" alt="Portrait of ${esc(roster[i][0])}"><h3 id="revealName">${esc(roster[i][0])}</h3><p>${esc(crewDescriptions[i])}</p><div class="reveal-stats"><span>💵 STARTING STACKS<br><b>3</b></span><span>⭐ STARTING CRED<br><b>1</b></span><span>🎲 START POSITION<br><b>Square 1</b></span><span>🎤 CREW STATUS<br><b>${wasSelected?'Selected':'Available'}</b></span></div><p class="note">These are the existing starting game values, not invented character-specific powers.</p><div class="reveal-actions"><button type="button" id="choosePerson">${wasSelected?'REMOVE FROM CREW':'CHOOSE THIS CHARACTER'}</button><button type="button" class="secondary" id="backPerson">BACK TO CREW</button></div></div>`;
    preview.classList.remove('hidden');
+   preview.querySelector('.reveal-shell').style.animation='none';
+   void preview.querySelector('.reveal-shell').offsetWidth;
+   preview.querySelector('.reveal-shell').style.animation='';
    const close=()=>{preview.classList.add('hidden');b.classList.remove('revealing');b.focus()};
    $('backPerson').onclick=close;
    preview.onclick=e=>{if(e.target===preview)close()};
