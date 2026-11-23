@@ -119,6 +119,23 @@ html{scroll-behavior:auto!important}
 .arttoken{z-index:6!important;pointer-events:none!important;transition:left .18s linear,top .18s linear!important}
 @media(max-width:650px){#crewPicks{grid-template-columns:repeat(2,minmax(0,1fr))}#crewPicks .crewcard{min-height:112px}#crewPicks .crewcard .avatar{font-size:35px}.artboard{transform:none;border-width:4px!important}}
 @media(prefers-reduced-motion:reduce){.deckpile.ready{animation:none!important}.arttoken{transition:none!important}}
+
+/* V6 character-card reveal: responsive, accessible and visually unmistakable. */
+#crewPicks .crewcard{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,filter .18s ease;cursor:pointer;touch-action:manipulation}
+#crewPicks .crewcard:active,#crewPicks .crewcard.revealing{transform:translateY(-6px) scale(1.035);border-color:#fff1a1;box-shadow:0 0 0 3px #ffd34e,0 0 30px #ffca55aa;filter:brightness(1.15)}
+#crewPicks .crewcard:focus-visible{outline:4px solid white;outline-offset:3px}
+#crewPreview{position:fixed;inset:0;z-index:130;background:#100b17e9;display:grid;place-items:center;padding:14px;overflow-y:auto;overscroll-behavior:contain;border:0;border-radius:0;margin:0}
+#crewPreview.hidden{display:none!important}
+#crewPreview .reveal-shell{width:min(440px,100%);max-height:calc(100dvh - 28px);overflow-y:auto;border:3px solid #ffcf68;border-radius:20px;background:linear-gradient(145deg,#59345b,#24182d 65%);padding:15px;box-shadow:0 0 0 5px #a9694a55,0 24px 70px #000;transform-origin:center;animation:gfCardReveal .48s cubic-bezier(.16,.9,.25,1) both;text-align:center}
+#crewPreview .reveal-shell .crewportrait{width:min(225px,75%);aspect-ratio:3/3.5;object-fit:cover;margin:6px auto 10px;border:2px solid #f5cb79;box-shadow:0 8px 22px #0008}
+#crewPreview .reveal-shell h3{font-size:clamp(24px,6vw,33px);color:#ffe18b;margin:4px 0}
+#crewPreview .reveal-shell p{line-height:1.4;margin:8px 0 12px}
+#crewPreview .reveal-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:12px 0}
+#crewPreview .reveal-stats span{border:1px solid #a98573;border-radius:9px;background:#271c32;padding:9px 4px;font-size:13px}
+#crewPreview .reveal-actions{display:grid;gap:9px;margin-top:12px}
+#crewPreview .reveal-actions button{min-height:49px}
+@keyframes gfCardReveal{0%{opacity:.65;transform:perspective(850px) rotateY(-85deg) scale(.62)}60%{opacity:1;transform:perspective(850px) rotateY(12deg) scale(1.025)}100%{transform:perspective(850px) rotateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){#crewPreview .reveal-shell{animation:none}#crewPicks .crewcard{transition:none}}
 </style></head><body><header><h1>GHETTO FABULOUS! 🎤</h1><p>64-square · 2–8 players · local pass-and-play playtest · BOARD + RHYME-LOCK + PUNCH-UP BETA</p></header><main><section class="panel"><h2>THE BOARD</h2><div class="stagekey"><span>🟠 1–16 DA BOTTOM</span><span>🟢 17–32 THE COME UP</span><span>🩷 33–48 THE QUALIFIERS</span><span>🟣 49–64 NOW WE HERE!</span></div><div class="board-tools"><button id="focusActive" class="primary">🎯 FIND MY CHARACTER</button><button id="zoomIn">＋ ZOOM</button><button id="zoomOut">－ ZOOM</button><button id="toggleTurn">🎴 SHOW / HIDE CARDS</button><span class="boardhint">Drag sideways to explore the original board · Tap a space to inspect</span></div><div id="tableMessage">TAP A GLOWING DECK · THE TABLE IS YOUR GAME</div><div id="tableDecks" class="tabledecks" aria-label="Card piles"></div><div class="artboard" id="boardViewport"><img src="board.jpg" alt="Original illustrated GHETTO FABULOUS 64-space board"><div id="artSquares" class="arttokens" style="pointer-events:auto" aria-label="Board spaces"></div><div id="artTokens" class="arttokens" aria-label="Player positions"></div></div><div class="tablehud"><button id="hudToggle" class="primary">🎴 OPEN TURN CARD</button><span id="hudPlayer">Choose your crew</span><button id="crewButton">👥 CREW</button></div><details><summary>Show interactive square inspector (1–64)</summary><div id="board" class="board"></div></details><p class="note">Tap any square to inspect its action. Test mode lets you move the active rapper directly to a square; normal movement is MAKING MOVES! cards only.</p><div class="toolbar"><button class="secondary" id="inspectBtn">Inspect square #1</button><button class="secondary" id="saveBtn">Export save</button><label class="secondary" style="padding:10px;border-radius:9px;background:#51435c;font-weight:700;cursor:pointer">Import save <input type="file" id="loadFile" accept="application/json" style="display:none"></label></div><div id="roster" class="roster"></div><h2 style="margin-top:16px">Career log</h2><div id="log" class="log"></div></section><section class="panel turnpanel expanded" id="turnPanel"><div class="flex" style="justify-content:space-between"><h2>THE TURN</h2><span id="round" class="pill"></span></div><div id="turnHeader" class="big"></div><div id="status" class="muted"></div><div id="action"></div><div class="toolbar"><label for="playerCount">Players <select id="playerCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label><button id="restart" class="bad">New game with selected players</button><button id="testToggle" class="secondary">Test mode: OFF</button></div><div id="testPanel" class="hidden"><p class="note">Playtest shortcut — jump to a square and resolve it, including battles, gates and the finale. This is not normal game movement.</p><div class="flex"><input id="testNumber" type="number" min="1" max="64" value="10" style="width:85px"><button id="jump">Test landing</button><button id="brokeTest" class="secondary">Test SIDE HUSTLES (0 STACKS)</button></div></div><p class="note">Rules: 3 STACKS + 1 Cred at setup only. No negative balances. No chained landing effects. Gatekeepers block passage until qualified. All dice rolls require a button press. Pass-and-play on one device; separate-device live sync is not enabled. Save stays in this browser, plus optional export/import.</p></section></main><div id="characterSetup" class="setupveil hidden"><div class="setupbox"><h2>🎤 PICK YOUR CREW</h2><p>Choose 2–8 players, then give each rapper their own character. No duplicates.</p><label>Players <select id="crewCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label><div id="crewPicks"></div><div id="crewPreview" class="hidden"></div><button id="startCrew" class="primary">LET'S PLAY →</button><button id="cancelCrew" class="secondary">CANCEL</button></div></div><div id="deckPeek" class="peek hidden" role="dialog" aria-modal="true"><div class="peekcard"><button id="closePeek" class="peekclose" aria-label="Close card">✕</button><div id="peekTitle"></div><div id="peekBody"></div><div id="peekChoices"></div><button id="peekAction" class="primary">BACK TO TABLE</button></div></div><script>
 'use strict';
 const names=['GET OFF THE COUCH!','CORNER CAR WASH','THE PARKING LOT SHOW','YOUR MIXTAPE IS FIRE!','YOUR WHIP GOT REPOED!','THE CORNER OFFICE','TODAY WAS A GOOD DAY','BOOTLEG BILLIONAIRE','BREAK YOURSELF!','THE BLOCK PARTY','THE PLUG KNOWS THE PROMOTER','RENT’S DUE!','HIGHER GROUNDS','GRANDMA BOUGHT YOUR MIXTAPE','WRONG WAY, PLAYBOY!','THE LOCAL LEGEND','FIRST PAID SHOW','YOU BIT SOMEBODY ELSE’S STYLE!','RUN YOUR JEWELS','THE TRAP','SOMEBODY SNITCHED!','THE CROOKED FADE','THE BOOTH OF TRUTH','YOUR SONG WENT VIRAL!','YOUR COUSIN’S YOUR MANAGER','THE DICE SPOT','THE TOP 10 LIST!','THE BACKDOOR CLUB','SQUAD UP!','PAY-TO-PLAY PALACE','THE PROMOTER GHOSTED YOU','THE INDUSTRY INSIDER','INDUSTRY PARTY','GHOSTWRITER EXPOSED!','THE CLOUT HOUSE','BIG FEATURE!','YOUR LABEL WENT BROKE!','NOBODY BUYS RECORDS','SNEAK DISS!','RENT-A-LAMBO','THE GROUP CHAT LEAKED!','THE FESTIVAL STAGE','YOU GOT A CO-SIGN!','YOUR DJ QUIT!','MIXTAPE MOUNTAIN','THE FLEX DISTRICT','YOUR TOUR GOT CANCELED!','THE HITMAKER','THE RED CARPET','YOU GOT A BILLBOARD!','YOUR EX WROTE A TELL-ALL','THE AWARD SHOW','THE INTERNET TURNED ON YOU!','YOUR ALBUM WENT PLATINUM!','YOUR ENTOURAGE ATE THE BUDGET','THE INDUSTRY BEEF','YOUR TOUR BUS BROKE DOWN','THE LEGENDARY VERSE','FAKE SOLD-OUT SHOW','YOUR ACCOUNTANT DISAPPEARED','HALL OF FAME MOMENT','YOUR MIC GOT CUT OFF!','THE FINAL CYPHER','THE G.O.A.T. SHOWDOWN'];
@@ -182,7 +199,7 @@ function applyCareer(){
  game.phase='moving';render();
  const token=$('artTokens').children[who];let square=before;
  if(token){const [sx,sy]=boardPoint(before);token.style.left=sx+'%';token.style.top=sy+'%';token.querySelector('small').textContent=before;}
- function hop(){if(square===after){landing();tabletopAction(null);return}
+ function hop(){if(square===after){landing();requestAnimationFrame(()=>tabletopAction(null));return}
  square+=Math.sign(after-square);const [x,y]=boardPoint(square);
  if(token){token.style.left=x+'%';token.style.top=y+'%';token.querySelector('small').textContent=square;}
  setTimeout(hop,185);
@@ -327,7 +344,7 @@ function phaseCard(origin){
 // Decks are physical draw piles; turn transitions are never hidden below the board.
 function tabletopAction(origin){
   const action=$('action'), buttons=[...action.querySelectorAll('button:not(:disabled)')];
-  if(!buttons.length){tableCard('THE TABLE','No action available yet.','BACK TO TABLE',null,origin);return;}
+  if(!buttons.length){if(game.phase==='moving')return;tableCard('THE TABLE','No action available yet.','BACK TO TABLE',null,origin);return;}
   const card=action.querySelector('.card');
   const title=card?.querySelector('h3')?.textContent || (game.phase==='end'?'NEXT RAPPER':'YOUR TURN');
   const body=card?.querySelector('p')?.textContent || action.querySelector('p')?.textContent || $('status').textContent;
@@ -336,7 +353,7 @@ function tabletopAction(origin){
   for(const original of buttons){
     const b=document.createElement('button');b.textContent=original.textContent;
     b.className=original.className;b.onclick=()=>{closeCard();original.click();
-      if(game.phase!=='draw'&&game.phase!=='end'&&game.winner===null)requestAnimationFrame(()=>tabletopAction(null));
+      if(game.phase!=='moving'&&game.phase!=='draw'&&game.winner===null)requestAnimationFrame(()=>tabletopAction(null));
     };choices.append(b);
   }
   $('peekAction').classList.add('secondary');
@@ -346,6 +363,7 @@ deckShelf.onclick=e=>{
   const origin=e.target.closest('[data-deck]');if(!origin||cardBusy)return;
   const i=Number(origin.dataset.deck);
   // End-of-turn continuation stays on the table, not in an offscreen panel.
+  if(game.phase==='moving'){return;}
   if(game.phase==='end'){tabletopAction(origin);return;}
   if(i===0&&game.phase==='draw'&&player().stacks>0){drawCareer();tabletopAction(origin);return;}
   if(i===4&&game.phase==='draw'&&player().stacks===0){drawHustle();tabletopAction(origin);return;}
@@ -371,10 +389,17 @@ function makeCrewRows(){
  $('startCrew').disabled=remaining!==0;
  $('startCrew').textContent=remaining?`CHOOSE ${remaining} MORE CHARACTER${remaining===1?'':'S'}`:`LET'S PLAY →`;
  $('crewPicks').querySelectorAll('button').forEach(b=>b.onclick=()=>{
-   const i=+b.dataset.person;const preview=$('crewPreview');preview.classList.remove('hidden');
-   preview.innerHTML=`<img class="crewportrait" src="character-${i+1}.webp" alt="Portrait of ${esc(roster[i][0])}"><h3>${esc(roster[i][0])}</h3><p>${esc(crewDescriptions[i])}</p><button type="button" id="choosePerson">${crewSelected.includes(i)?'REMOVE FROM CREW':'CHOOSE THIS CHARACTER'}</button><button type="button" class="secondary" id="backPerson">BACK TO CARDS</button>`;
-   $('backPerson').onclick=()=>preview.classList.add('hidden');
-   $('choosePerson').onclick=()=>{if(crewSelected.includes(i))crewSelected=crewSelected.filter(v=>v!==i);else if(crewSelected.length<n)crewSelected.push(i);preview.classList.add('hidden');makeCrewRows()};
+   const i=+b.dataset.person;
+   b.classList.add('revealing');if(navigator.vibrate)try{navigator.vibrate(12)}catch(e){};
+   const preview=$('crewPreview');
+   const wasSelected=crewSelected.includes(i);
+   preview.innerHTML=`<div class="reveal-shell" role="dialog" aria-modal="true" aria-labelledby="revealName" tabindex="-1"><img class="crewportrait" src="character-${i+1}.webp" alt="Portrait of ${esc(roster[i][0])}"><h3 id="revealName">${esc(roster[i][0])}</h3><p>${esc(crewDescriptions[i])}</p><div class="reveal-stats"><span>💵 STARTING STACKS<br><b>3</b></span><span>⭐ STARTING CRED<br><b>1</b></span><span>🎲 START POSITION<br><b>Square 1</b></span><span>🎤 CREW STATUS<br><b>${wasSelected?'Selected':'Available'}</b></span></div><p class="note">These are the existing starting game values, not invented character-specific powers.</p><div class="reveal-actions"><button type="button" id="choosePerson">${wasSelected?'REMOVE FROM CREW':'CHOOSE THIS CHARACTER'}</button><button type="button" class="secondary" id="backPerson">BACK TO CREW</button></div></div>`;
+   preview.classList.remove('hidden');
+   const close=()=>{preview.classList.add('hidden');b.classList.remove('revealing');b.focus()};
+   $('backPerson').onclick=close;
+   preview.onclick=e=>{if(e.target===preview)close()};
+   $('choosePerson').onclick=()=>{if(wasSelected)crewSelected=crewSelected.filter(v=>v!==i);else if(crewSelected.length<n)crewSelected.push(i);preview.classList.add('hidden');makeCrewRows();const next=$('crewPicks').querySelector(`[data-person="${i}"]`);if(next)next.focus()};
+   preview.querySelector('.reveal-shell').focus();
  });
 }
 
