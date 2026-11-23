@@ -195,18 +195,19 @@ function advance(n){let target=Math.max(1,Math.min(64,player().pos+n));if(n>0)fo
 function landing(){const n=player().pos;game.event={n,title:names[n-1],flavor:flavors[n-1]};game.phase='landing';log(`${player().name} landed on #${n}: ${names[n-1]}`);render()}
 function drawCareer(){if(game.phase!=='draw'||player().stacks===0)return;game.card=movement[rand(movement.length)];game.phase='career';render()}
 function applyCareer(){
- const before=player().pos,who=game.turn;const [title,steps,st,cr]=game.card;
+ const before=player().pos,who=game.turn,activeGame=game;const [title,steps,st,cr]=game.card;
  gain(st,cr);advance(steps);const after=player().pos;
  log(`${player().name} played ${title}: ${steps>=0?'+':''}${steps} spaces, ${st>=0?'+':''}${st} STACKS, ${cr>=0?'+':''}${cr} Cred.`);
  game.phase='moving';render();
  const token=$('artTokens').children[who];let square=before;
  if(token){const [sx,sy]=boardPoint(before);token.style.left=sx+'%';token.style.top=sy+'%';token.querySelector('small').textContent=before;}
- function hop(){if(square===after){landing();setTimeout(()=>tabletopAction(null),260);return}
+ function hop(){if(game!==activeGame||game.turn!==who||game.phase!=='moving')return;if(square===after){landing();setTimeout(()=>{if(game.phase==='landing'&&deckPeek.classList.contains('hidden'))tabletopAction(null)},260);return}
  square+=Math.sign(after-square);const [x,y]=boardPoint(square);
  if(token){token.style.left=x+'%';token.style.top=y+'%';token.querySelector('small').textContent=square;}
  setTimeout(hop,185);
  }setTimeout(hop,180);
 }
+function ensureBarup(){if(!game.barup)game.barup={ready:true};ensureHand(player());}
 function finish(message){if(message)log(message);game.phase=game.winner!==null?'end':'barup';ensureBarup();render()}
 function simple(st,cr,move=0){gain(st,cr);if(move)shift(move);finish(`${player().name}: ${st>=0?'+':''}${st} STACKS, ${cr>=0?'+':''}${cr} Cred${move?', '+move+' spaces':''}.`)}
 function eventDeck(kind){const deck=kind==='dub'?dub:kind==='loss'?losses:wild;const c=deck[rand(deck.length)];game.event.drawn={kind,c};game.phase='deck';render()}
@@ -316,9 +317,9 @@ const deckShelf=$('tableDecks');deckShelf.innerHTML=DECK_DISPLAY.map((d,i)=>`<bu
 const deckPeek=$('deckPeek');
 const peekCard=deckPeek.querySelector('.peekcard');
 let pendingMovement=false;
-function closeAndMove(){const move=pendingMovement;pendingMovement=false;closeCard();if(move&&game.phase==='career')applyCareer();}
+function closeAndMove(){const move=pendingMovement;pendingMovement=false;closeCard();if(move&&game.phase==='career'){requestAnimationFrame(()=>requestAnimationFrame(()=>{if(game.phase==='career')applyCareer();}));}}
 let cardBusy=false;
-function closeCard(){deckPeek.classList.add('hidden');$('peekChoices').replaceChildren();cardBusy=false;}
+function closeCard(){deckPeek.classList.add('hidden');$('peekChoices').replaceChildren();peekCard.getAnimations().forEach(a=>a.cancel());cardBusy=false;}
 function tableCard(title,body,buttonLabel,action,origin){
   $('peekChoices').replaceChildren();
   $('peekTitle').textContent=title;
@@ -363,7 +364,7 @@ function tabletopAction(origin){
   for(const original of buttons){
     const b=document.createElement('button');b.textContent=original.textContent;
     b.className=original.className;b.onclick=()=>{closeCard();original.click();
-      if(game.phase!=='moving'&&game.phase!=='draw'&&game.winner===null)requestAnimationFrame(()=>tabletopAction(null));
+      if(game.phase!=='moving'&&game.phase!=='draw'&&game.winner===null)requestAnimationFrame(()=>{if(deckPeek.classList.contains('hidden'))tabletopAction(null)});
     };choices.append(b);
   }
   $('peekAction').classList.add('secondary');
